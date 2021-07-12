@@ -13,11 +13,7 @@ start_redis_server() {
     local port="$1"
     local password="${2:-}"
 
-    if ! command -v timeout >/dev/null; then
-         timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
-    fi
-
-    timeout 10 redis-server --bind localhost --port "${port}" >/dev/null &
+    redis-server --bind localhost --port "${port}" >/dev/null &
     # Wait for server start.
     i=0
     while [ $i -lt 100 ] && ! redis-cli -p "${port}" ping &>/dev/null; do
