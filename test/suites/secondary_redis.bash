@@ -11,6 +11,7 @@ SUITE_secondary_redis_PROBE() {
 
 start_redis_server() {
     local port="$1"
+    local password="${2:-}"
 
     if ! command -v timeout >/dev/null; then
          timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
@@ -23,6 +24,10 @@ start_redis_server() {
         sleep 0.1
         i=$((i + 1))
     done
+
+    if [ -n "${password}" ]; then
+        redis-cli -p "${port}" config set requirepass "${password}" &>/dev/null
+    fi
 }
 
 SUITE_secondary_redis_SETUP() {
@@ -36,7 +41,7 @@ expect_number_of_redis_cache_entries() {
     local url=$2
     local actual
 
-    actual=$(redis-cli -u "$url" keys "ccache:*" | wc -l)
+    actual=$(redis-cli -u "$url" keys "ccache:*" 2>/dev/null | wc -l)
     if [ "$actual" -ne "$expected" ]; then
         test_failed_internal "Found $actual (expected $expected) entries in $url"
     fi
@@ -51,6 +56,38 @@ SUITE_secondary_redis() {
     export CCACHE_SECONDARY_STORAGE="${redis_url}"
 
     start_redis_server "${port}"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+
+    $CCACHE -C >/dev/null
+    expect_stat 'files in cache' 0
+    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 0
+    expect_number_of_redis_cache_entries 2 "$redis_url" # result + manifest
+
+    # -------------------------------------------------------------------------
+    TEST "Password"
+
+    port=7777
+    password=secret
+    redis_url="redis://${password}@localhost:${port}"
+    export CCACHE_SECONDARY_STORAGE="${redis_url}"
+
+    start_redis_server "${port}" "${password}"
 
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 0
