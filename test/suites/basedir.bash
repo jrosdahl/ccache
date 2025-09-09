@@ -275,7 +275,7 @@ EOF
     # -------------------------------------------------------------------------
     if $COMPILER_TYPE_CLANG; then
         TEST "-fbuild-session-file/absolute/path"
-        
+
         build_session_file_path="$(pwd)/dir3/build-session-file.bin"
         cd dir1
         CCACHE_BASEDIR="$(pwd)" $CCACHE_COMPILE -I"$(pwd)/include" -fbuild-session-file="$build_session_file_path" -c src/test.c
@@ -360,6 +360,7 @@ EOF
         expect_stat cache_miss 1
         cd ..
     done
+
     # -------------------------------------------------------------------------
 if $RUN_WIN_XFAIL; then
     TEST "Absolute paths in stderr"
@@ -404,6 +405,7 @@ EOF
         expect_equal_content reference.stderr ccache.stderr
     fi
 fi
+
     # -------------------------------------------------------------------------
     TEST "Relative PWD"
 
