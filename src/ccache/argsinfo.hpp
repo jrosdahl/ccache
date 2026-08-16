@@ -74,6 +74,10 @@ struct ArgsInfo
   // Assembler listing file.
   std::filesystem::path output_al;
 
+  // SARIF diagnostics file (from -fdiagnostics-{add,set}-output= or
+  // /experimental:log).
+  std::filesystem::path output_sarif;
+
   // The given PCH filepath being compiled to (by -Fp option).
   std::filesystem::path orig_included_pch_file;
 

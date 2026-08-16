@@ -756,6 +756,110 @@ TEST_CASE("-x")
   }
 }
 
+TEST_CASE("GCC diagnostics output options")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::gcc);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("Diagnostics format")
+  {
+    ctx.orig_args = Args{"gcc", "-fdiagnostics-format=text", "-c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif.empty());
+    CHECK(result->preprocessor_args.to_string() == "gcc");
+    CHECK(result->compiler_args.to_string()
+          == "gcc -fdiagnostics-format=text -fdiagnostics-color -c");
+    CHECK(result->extra_args_to_hash.to_string()
+          == "-fdiagnostics-format=text");
+  }
+
+  SUBCASE("SARIF stderr diagnostics format")
+  {
+    ctx.orig_args =
+      Args{"gcc", "-fdiagnostics-format=sarif-stderr", "-c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif.empty());
+    CHECK(result->preprocessor_args.to_string() == "gcc");
+    CHECK(result->compiler_args.to_string()
+          == "gcc -fdiagnostics-format=sarif-stderr -fdiagnostics-color -c");
+    CHECK(result->extra_args_to_hash.to_string()
+          == "-fdiagnostics-format=sarif-stderr");
+  }
+
+  SUBCASE("Text output with key options")
+  {
+    ctx.orig_args =
+      Args{"gcc", "-fdiagnostics-set-output=text:color=no", "-c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif.empty());
+    CHECK(result->preprocessor_args.to_string() == "gcc");
+    CHECK(
+      result->compiler_args.to_string()
+      == "gcc -fdiagnostics-set-output=text:color=no -fdiagnostics-color -c");
+    CHECK(result->extra_args_to_hash.to_string()
+          == "-fdiagnostics-set-output=text:color=no");
+  }
+
+  SUBCASE("SARIF output with key options")
+  {
+    ctx.orig_args = Args{
+      "gcc",
+      "-fdiagnostics-add-output=sarif:version=2.1,file=report.sarif",
+      "-c",
+      "foo.c",
+    };
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "gcc"
+             " -fdiagnostics-add-output=sarif:version=2.1,file=report.sarif"
+             " -fdiagnostics-color -c");
+  }
+
+  SUBCASE("Absolute SARIF output under base directory")
+  {
+    ctx.config.set_base_dir(get_root());
+    const auto output = ctx.actual_cwd / "report.sarif";
+    ctx.orig_args = Args{
+      "gcc",
+      FMT("-fdiagnostics-set-output=sarif:file={}", output),
+      "-c",
+      "foo.c",
+    };
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == ("gcc -fdiagnostics-set-output=sarif:file=report.sarif"
+              " -fdiagnostics-color -c"));
+  }
+
+  SUBCASE("Missing SARIF file")
+  {
+    ctx.orig_args =
+      Args{"gcc", "-fdiagnostics-set-output=sarif:version=2.1", "-c", "foo.c"};
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+  SUBCASE("Multiple diagnostics output options")
+  {
+    ctx.orig_args = Args{
+      "gcc",
+      "-fdiagnostics-format=text",
+      "-fdiagnostics-add-output=text",
+      "-c",
+      "foo.c",
+    };
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+}
+
 // On macOS ctx.actual_cwd typically starts with /Users which clashes with
 // MSVC's /U option, so disable the test case there. This will be possible to
 // improve when/if a compiler abstraction is introduced (issue #956).
@@ -774,6 +878,116 @@ TEST_CASE("MSVC options"
   CHECK(result);
   CHECK(result->preprocessor_args.to_string() == "cl.exe /foobar");
   CHECK(result->compiler_args.to_string() == "cl.exe /foobar /c");
+}
+
+TEST_CASE("MSVC /experimental:log")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::msvc);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  SUBCASE("Separate filename")
+  {
+    ctx.orig_args = Args{
+      "cl.exe", "/experimental:log", "report", "/Fofoo.obj", "/c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->preprocessor_args.to_string() == "cl.exe");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /experimental:log report /c");
+  }
+
+  SUBCASE("Attached filename")
+  {
+    ctx.orig_args =
+      Args{"cl.exe", "/experimental:logreport", "/Fofoo.obj", "/c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /experimental:log report /c");
+  }
+
+  SUBCASE("Dash spelling")
+  {
+    ctx.orig_args =
+      Args{"cl.exe", "-experimental:logreport", "/Fofoo.obj", "/c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe -experimental:log report /c");
+  }
+
+  SUBCASE("Absolute filename under base directory")
+  {
+    ctx.config.set_base_dir(get_root());
+    const auto output = ctx.actual_cwd / "report";
+    ctx.orig_args = Args{
+      "cl.exe",
+      "/experimental:log",
+      util::pstr(output),
+      "/Fofoo.obj",
+      "/c",
+      "foo.c",
+    };
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "report.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /experimental:log report /c");
+  }
+
+  SUBCASE("Missing argument")
+  {
+    ctx.orig_args =
+      Args{"cl.exe", "/Fofoo.obj", "/c", "foo.c", "/experimental:log"};
+    CHECK(process_args(ctx).error() == Statistic::bad_compiler_arguments);
+  }
+
+  SUBCASE("Multiple options")
+  {
+    ctx.orig_args = Args{
+      "cl.exe",
+      "/experimental:logfirst",
+      "/experimental:logsecond",
+      "/Fofoo.obj",
+      "/c",
+      "foo.c",
+    };
+    CHECK(process_args(ctx).error() == Statistic::unsupported_compiler_option);
+  }
+
+#ifdef _WIN32
+  SUBCASE("Directory")
+  {
+    ctx.orig_args = Args{
+      "cl.exe", "/experimental:log", "reports\\", "/Fofoo.obj", "/c", "foo.c"};
+    const auto result = process_args(ctx);
+    REQUIRE(result);
+    CHECK(ctx.args_info.output_sarif == "reports/foo.sarif");
+    CHECK(result->compiler_args.to_string()
+          == "cl.exe /experimental:log reports\\ /c");
+  }
+#endif
+}
+
+TEST_CASE("clang-cl /experimental:log")
+{
+  TestContext test_context;
+  Context ctx;
+  ctx.config.set_compiler_type(CompilerType::clang_cl);
+  REQUIRE(util::write_file("foo.c", ""));
+
+  ctx.orig_args = Args{
+    "clang-cl.exe", "/experimental:logreport", "/Fofoo.obj", "/c", "foo.c"};
+  const auto result = process_args(ctx);
+  REQUIRE(result);
+  CHECK(ctx.args_info.output_sarif == "report.sarif");
+  CHECK(result->compiler_args.to_string()
+        == "clang-cl.exe /experimental:log report -fcolor-diagnostics /c");
 }
 
 TEST_CASE("MSVC PCH options")

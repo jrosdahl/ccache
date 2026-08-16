@@ -1125,6 +1125,12 @@ write_result(Context& ctx,
     LOG("Assembler listing file {} missing", ctx.args_info.output_al);
     return false;
   }
+  if (!ctx.args_info.output_sarif.empty()
+      && !serializer.add_file(core::result::FileType::sarif,
+                              ctx.args_info.output_sarif)) {
+    LOG("Sarif file {} missing", ctx.args_info.output_sarif);
+    return false;
+  }
 
   core::CacheEntry::Header header(ctx.config, core::CacheEntryType::result);
   const auto cache_entry_data = core::CacheEntry::serialize(header, serializer);
@@ -3047,6 +3053,9 @@ do_cache_compilation(Context& ctx)
   }
   if (!ctx.args_info.output_dwo.empty()) {
     LOG("Split dwarf file: {}", ctx.args_info.output_dwo);
+  }
+  if (!ctx.args_info.output_sarif.empty()) {
+    LOG("Sarif file: {}", ctx.args_info.output_sarif);
   }
 
   LOG("Object file: {}", ctx.args_info.output_obj);
