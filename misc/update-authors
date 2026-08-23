@@ -31,14 +31,14 @@ PSEUDONYMOUS = {
     "Mikhail B",
     "Moritz",
     "R43Qi8krC",
+    "RedNicStone",
     "RW",
     "senhtry",
-    "vsplesk",
-    "zcfh",
-    "RedNicStone",
     "subotac",
     "ThisIsFineTM",
     "trustytrojan",
+    "vsplesk",
+    "zcfh",
 }
 
 AUTHORS_ADOC = Path(__file__).parents[1] / "doc/authors.adoc"
