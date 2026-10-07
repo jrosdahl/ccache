@@ -2,48 +2,72 @@
 
 Want to contribute to ccache? Awesome!
 
-## Asking a question?
+The preferred way to contribute is to create one or several pull requests (PRs)
+on [GitHub](https://github.com/ccache/ccache).
 
-There are several options:
+## Contribution requirements
 
-1. Ask a question in
-   [discussions](https://github.com/ccache/ccache/issues/discussions).
-2. Post your question to the [mailing
-   list](https://lists.samba.org/mailman/listinfo/ccache/).
+You must:
 
-## Reporting an issue?
+- fully understand every line of code you submit
+- be able to explain and motivate the proposed design and implementation
+- take full responsibility for the content of your contribution
 
-Please include at least the following information in your bug report:
+You should:
 
-1. Which version of ccache you use.
-2. Which compiler you use, if applicable.
-3. Which operating system you use, if applicable.
-4. The problematic behavior you experienced (_actual behavior_).
-5. How you would like ccache to behave instead (_expected behavior_).
-6. Steps to reproduce the problematic behavior.
+- add test cases for your new changes, if applicable
+- keep pull requests focused on a single logical change
+- write clear [commit messages](#commit-message-conventions) and pull request
+  descriptions
+- follow the [ccache code style](#code-style)
 
-Also, consider reading [Effective Ways to Get Help from Maintainers](
-https://www.snoyman.com/blog/2017/10/effective-ways-help-from-maintainers).
+A PR may be rejected early if:
 
-## Contributing code?
+- the PR description provides no motivation for the changes
+- it implements too many changes in one go
+- it implements major changes without a preceding design discussion
+- it appears to contain substantial amounts of stereotypical AI-generated code
+  (such as excessive verbosity, excessive comments or needless abstractions)
+  with little or no human contributor oversight and insight
 
-The preferred way is to create one or several pull request with your
-proposal(s) on [GitHub](https://github.com/ccache/ccache).
+## Use of AI tools
 
-Here are some hints to make the process smoother:
+Using AI tools for research, to understand the codebase or to help with
+implementation is allowed. However, they should be used to **accelerate work
+that you could have done yourself**, not replace your own understanding or
+judgment.
+
+In addition to the contribution requirements above:
+
+- You must carefully review AI-generated code and trim it to what is actually
+  needed. PRs containing large amounts of unreviewed or unnecessary AI-generated
+  code may be closed without detailed review.
+- You must disclose whether AI has been used for non-trivial code generation
+  (see the PR template checklist). Simple code completion is considered trivial.
+  AI-assisted proofreading and translation of code comments and documentation do
+  not need to be disclosed.
+- There is no need to disclose which tool or model was used since that's not
+  relevant.
+- Using an AI chatbot to write messages to other humans or interpret their
+  messages during code review or other discussions is not acceptable. Using AI
+  only for proofreading or translation to and from English is acceptable. Humans
+  will take time to review the code, and we expect human contributors to make
+  the same commitment in handling submissions themselves.
+- AI agents must not submit PRs, issues or comments themselves. Discussions in
+  ccache repositories are for humans only.
+
+## Tips
 
 * Have a look in `ARCHITECTURE.md` for an overview of the source code tree.
 * If you plan to implement major changes it is wise to open a discussion or an
-  issue on GitHub (or send a mail to the mailing list) asking for comments on
-  your plans before doing the bulk of the work. That way you can avoid
-  potentially wasting time on doing something that may need major rework to be
-  accepted, or maybe doesn't end up being accepted at all.
+  issue on GitHub asking for comments on your plans before doing the bulk of the
+  work. That way you can avoid potentially wasting time on doing something that
+  may need major rework to be accepted, or maybe doesn't end up being accepted
+  at all.
 * Is your pull request "work in progress", i.e. you don't think that it's ready
   for merging yet but you want early comments and CI test results? Then create a
   draft pull request as described in [this Github blog
   post](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
-* Please add test cases for your new changes if applicable.
-* Please follow the ccache's code style (see the section below).
 
 ## Commit message conventions
 
