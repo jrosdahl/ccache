@@ -389,6 +389,31 @@ TEST_CASE("find_incbin_directive")
   CHECK(find_incbin_directive(
           FMT(".inc{}bin(data) .inc{}bin \"data.bin\"", "", ""), 1)
         == 14);
+  CHECK(find_incbin_directive(FMT(".inc{}bin BLOB_FILE", "")) == 0);
+  CHECK(find_incbin_directive(FMT(".inc{}binary()", "")) == 0);
+  CHECK(find_incbin_directive(FMT(".inc{}bin", "")) == 0);
+}
+
+TEST_CASE("check_for_source_code_patterns: incbin with macro operand")
+{
+  const auto source = FMT(".inc{}bin BLOB_FILE\n", "");
+  SourceCodeScanResult result;
+
+  SUBCASE("scalar")
+  {
+    result = check_for_source_code_patterns_scalar(source);
+  }
+
+#ifdef HAVE_AVX2
+  if (util::cpu_supports_avx2()) {
+    SUBCASE("avx2")
+    {
+      result = check_for_source_code_patterns_avx2(source);
+    }
+  }
+#endif
+
+  CHECK(result.contains(SourceCodeScan::found_incbin));
 }
 
 TEST_CASE("check_for_source_code_patterns: macro-expanded embed operand")
@@ -566,7 +591,7 @@ TEST_CASE("check_for_source_code_patterns_avx2: no incbin directive"
           * doctest::skip(!util::cpu_supports_avx2()))
 {
   CHECK_FALSE(contains_incbin_directive(
-    FMT("\n    #include <stdio.h>\n    .inc{}bin data.bin\n  ", "")));
+    FMT("\n    #include <stdio.h>\n    object.inc{}bin ()\n  ", "")));
 }
 
 TEST_CASE("check_for_source_code_patterns_avx2: simple incbin"

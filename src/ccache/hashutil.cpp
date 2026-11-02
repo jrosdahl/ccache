@@ -60,6 +60,15 @@ skip_horizontal_whitespace(const char* p, const char* end)
 }
 
 const char*
+skip_whitespace(const char* p, const char* end)
+{
+  while (p < end && std::isspace(static_cast<unsigned char>(*p))) {
+    ++p;
+  }
+  return p;
+}
+
+const char*
 skip_line_continuation(const char* p, const char* end)
 {
   if (p < end && end - p >= 2 && *p == '\\' && (p[1] == '\n' || p[1] == '\r')) {
@@ -164,12 +173,10 @@ check_for_incbin_directive(std::string_view str, size_t pos)
 
   const char* const begin = str.data();
   const char* const end = begin + str.size();
-  const char* p = begin + pos + incbin_size;
-  p = skip_horizontal_whitespace(p, end);
+  const char* p = skip_whitespace(begin + pos + incbin_size, end);
 
-  return p < end && (*p == '"' || (*p == '\\' && p + 1 < end && p[1] == '"'))
-           ? SourceCodeScan::found_incbin
-           : SourceCodeScan::none;
+  return p < end && *p == '(' ? SourceCodeScan::none
+                              : SourceCodeScan::found_incbin;
 }
 
 void

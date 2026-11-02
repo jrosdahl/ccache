@@ -1943,6 +1943,21 @@ EOF
     expect_stat unsupported_code_directive 3
 
     # -------------------------------------------------------------------------
+    TEST ".incbin with macro operand"
+
+    touch empty.bin
+
+    cat <<EOF >incbin.S
+.incbin BLOB_FILE
+EOF
+
+    $CCACHE_COMPILE -DBLOB_FILE='"empty.bin"' -c incbin.S
+    expect_stat direct_cache_hit 0
+    expect_stat preprocessed_cache_hit 0
+    expect_stat cache_miss 0
+    expect_stat unsupported_code_directive 1
+
+    # -------------------------------------------------------------------------
     TEST ".incbin in .h"
 
     touch empty.bin
