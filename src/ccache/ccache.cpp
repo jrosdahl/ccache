@@ -2879,7 +2879,12 @@ initialize(Context& ctx, const char* const* argv, bool masquerading_as_compiler)
 
 static int cache_compilation(int argc, const char* const* argv);
 
-static tl::expected<core::StatisticsCounters, Failure>
+struct CompilationSuccess
+{
+  Statistic statistic;
+};
+
+static tl::expected<CompilationSuccess, Failure>
 do_cache_compilation(Context& ctx);
 
 static void
@@ -3003,8 +3008,9 @@ cache_compilation(int argc, const char* const* argv)
     initialize(ctx, argv, argv_parts.masquerading_as_compiler);
 
     const auto result = do_cache_compilation(ctx);
-    ctx.storage.local.increment_statistics(result ? *result
-                                                  : result.error().counters());
+    ctx.storage.local.increment_statistics(
+      result ? core::StatisticsCounters(result->statistic)
+             : result.error().counters());
     const auto& counters = ctx.storage.local.get_statistics_updates();
 
     if (counters.get(Statistic::cache_miss) > 0) {
@@ -3063,7 +3069,7 @@ cache_compilation(int argc, const char* const* argv)
   return EXIT_SUCCESS;
 }
 
-static tl::expected<core::StatisticsCounters, Failure>
+static tl::expected<CompilationSuccess, Failure>
 do_cache_compilation(Context& ctx)
 {
   if (ctx.config.disable()) {
@@ -3223,7 +3229,7 @@ do_cache_compilation(Context& ctx)
       TRY_ASSIGN(bool hit,
                  from_cache(ctx, FromCacheCallMode::direct, *result_key));
       if (hit) {
-        return Statistic::direct_cache_hit;
+        return CompilationSuccess{Statistic::direct_cache_hit};
       }
 
       // Wasn't able to return from cache at this point. However, the result
@@ -3294,7 +3300,7 @@ do_cache_compilation(Context& ctx)
       if (ctx.config.direct_mode() && manifest_key && put_result_in_manifest) {
         update_manifest(ctx, *manifest_key, *result_key);
       }
-      return Statistic::preprocessed_cache_hit;
+      return CompilationSuccess{Statistic::preprocessed_cache_hit};
     }
 
     if (!ctx.config.recache()) {
@@ -3321,7 +3327,8 @@ do_cache_compilation(Context& ctx)
     update_manifest(ctx, *manifest_key, *result_key);
   }
 
-  return ctx.config.recache() ? Statistic::recache : Statistic::cache_miss;
+  return CompilationSuccess{ctx.config.recache() ? Statistic::recache
+                                                 : Statistic::cache_miss};
 }
 
 bool
