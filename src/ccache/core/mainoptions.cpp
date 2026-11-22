@@ -203,7 +203,9 @@ read_from_path_or_stdin(const fs::path& path)
     });
   } else {
     return util::read_file<util::Bytes>(path).transform_error(
-      [&](auto error) { return FMT("Failed to read {}: {}", path, error); });
+      [&](const auto& error) {
+        return FMT("Failed to read {}: {}", path, error.message);
+      });
   }
 }
 

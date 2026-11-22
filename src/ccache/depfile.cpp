@@ -102,7 +102,11 @@ make_paths_relative_in_output_dep(const Context& ctx)
   }
 
   const auto& output_dep = ctx.args_info.output_dep;
-  TRY_ASSIGN(auto content, util::read_file<std::string>(output_dep));
+  TRY_ASSIGN(
+    auto content,
+    util::read_file<std::string>(output_dep).transform_error([](auto&& error) {
+      return std::move(error.message);
+    }));
   const auto new_content = rewrite_source_paths(ctx, content);
   if (new_content) {
     TRY(util::write_file(output_dep, *new_content));

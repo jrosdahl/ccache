@@ -88,7 +88,8 @@ ResultExtractor::on_raw_file(uint8_t file_number,
   }
 
   const auto data = util::value_or_throw<Error>(
-    util::read_file<util::Bytes>(raw_file_path, file_size),
+    util::read_file<util::Bytes>(raw_file_path, file_size)
+      .transform_error([](auto&& error) { return std::move(error.message); }),
     FMT("Failed to read {}: ", raw_file_path));
   on_embedded_file(file_number, file_type, data);
 }

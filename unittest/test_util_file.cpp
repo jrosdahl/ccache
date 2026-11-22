@@ -26,6 +26,7 @@
 #include <ccache/util/format.hpp>
 #include <ccache/util/string.hpp>
 #include <ccache/util/time.hpp>
+#include <ccache/util/wincompat.hpp>
 
 #include <doctest/doctest.h>
 
@@ -36,6 +37,7 @@
 #endif
 
 #include <cstring>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -118,7 +120,14 @@ TEST_CASE("util::read_file, util::write_file and util::copy_file, text data")
 
   data = util::read_file<std::string>("does/not/exist");
   REQUIRE(!data);
-  CHECK(data.error() == "No such file or directory");
+  CHECK(data.error().code == std::errc::no_such_file_or_directory);
+  CHECK(data.error().message == "No such file or directory");
+
+  data = util::read_file<std::string>("size_hint_test",
+                                      std::numeric_limits<size_t>::max());
+  REQUIRE(!data);
+  CHECK(data.error().code == std::errc::file_too_large);
+  CHECK(data.error().message.starts_with("too large file: size_hint_test"));
 
   auto result = util::write_file("", "does/not/exist");
   REQUIRE(!result);
@@ -182,7 +191,10 @@ TEST_CASE("util::read_file<std::string> with UTF-16 little endian encoding")
   CHECK(util::write_file("test", data));
   read_data = util::read_file<std::string>("test");
   REQUIRE(!read_data);
-  REQUIRE(read_data.error().starts_with(
+  CHECK(
+    read_data.error().code
+    == std::error_code(ERROR_NO_UNICODE_TRANSLATION, std::system_category()));
+  REQUIRE(read_data.error().message.starts_with(
     "Failed to convert test from UTF-16LE to UTF-8:"));
 }
 #endif

@@ -135,7 +135,7 @@ FileStorageBackend::get(const Hash::Digest& key)
 
     return util::read_file<util::Bytes>(path).transform_error(
       [&](const auto& error) {
-        LOG("Failed to read {}: {}", path, error);
+        LOG("Failed to read {}: {}", path, error.message);
         return Failure::error;
       });
   }

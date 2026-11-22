@@ -49,6 +49,12 @@ enum class ViaTmpFile { yes, no };
 
 using TraverseDirectoryVisitor = std::function<void(const DirEntry& dir_entry)>;
 
+struct IoError
+{
+  std::error_code code;
+  std::string message;
+};
+
 // Copy a file from `src` to `dest`. If `via_tmp_file` is yes, `src` is copied
 // to a temporary file and then renamed to dest.
 tl::expected<void, std::string>
@@ -77,7 +83,7 @@ tl::expected<void, std::string> read_fd(int fd, DataReceiver data_receiver);
 // -1.
 tl::expected<util::Bytes, std::string> read_fd(int fd);
 
-// Return contents of file at  `path`.
+// Return contents of file at `path`.
 //
 // `T` should be `util::Bytes` or `std::vector<uint8_t>` for binary data and
 // `std::string` for text data. If `T` is `std::string` and the content starts
@@ -87,8 +93,8 @@ tl::expected<util::Bytes, std::string> read_fd(int fd);
 // If `size_hint` is not 0 then it is assumed that `path` has this size (this
 // saves system calls).
 template<typename T>
-tl::expected<T, std::string> read_file(const std::filesystem::path& path,
-                                       size_t size_hint = 0);
+tl::expected<T, IoError> read_file(const std::filesystem::path& path,
+                                   size_t size_hint = 0);
 
 // Return (at most) `count` bytes from `path` starting at position `pos`.
 //

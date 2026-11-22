@@ -62,7 +62,8 @@ Args::from_response_file(const std::string& filename, ResponseFileFormat format)
 
   const auto argtext = util::read_file<std::string>(filename);
   if (!argtext) {
-    LOG("Failed to read response file {}: {}", filename, argtext.error());
+    LOG(
+      "Failed to read response file {}: {}", filename, argtext.error().message);
     return std::nullopt;
   }
 

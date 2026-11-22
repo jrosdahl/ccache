@@ -194,7 +194,7 @@ cmd_put(Client& client, const std::vector<std::string>& args)
       auto r = util::read_file<util::Bytes>(input);
       if (!r) {
         return tl::unexpected(
-          FMT("failed reading from {}: {}", input, r.error()));
+          FMT("failed reading from {}: {}", input, r.error().message));
       }
       value = std::move(*r);
     }

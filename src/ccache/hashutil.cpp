@@ -233,7 +233,7 @@ do_hash_file(const Context& ctx,
   if (scan_source) {
     const auto data = util::read_file<util::Bytes>(path, size_hint);
     if (!data) {
-      LOG("Failed to read {}: {}", path, data.error());
+      LOG("Failed to read {}: {}", path, data.error().message);
       return std::nullopt;
     }
     const auto str = util::to_string_view(*data);

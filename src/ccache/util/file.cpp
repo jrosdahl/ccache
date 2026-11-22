@@ -354,7 +354,7 @@ has_utf16_le_bom(std::string_view text)
 #endif
 
 template<typename T>
-tl::expected<T, std::string>
+tl::expected<T, IoError>
 read_file(const fs::path& path, size_t size_hint)
 {
   const int open_flags = [] {
@@ -366,19 +366,26 @@ read_file(const fs::path& path, size_t size_hint)
   }();
   Fd fd(open(util::pstr(path).c_str(), open_flags));
   if (!fd) {
-    return tl::unexpected(strerror(errno));
+    const std::error_code error(errno, std::generic_category());
+    return tl::unexpected(IoError{error, error.message()});
   }
 
   if (size_hint == 0) {
 #ifdef _WIN32
     LARGE_INTEGER file_size;
-    GetFileSizeEx(reinterpret_cast<HANDLE>(_get_osfhandle(fd.get())),
-                  &file_size);
+    if (!GetFileSizeEx(reinterpret_cast<HANDLE>(_get_osfhandle(fd.get())),
+                       &file_size)) {
+      const auto error = GetLastError();
+      return tl::unexpected(
+        IoError{std::error_code(error, std::system_category()),
+                util::win32_error_message(error)});
+    }
     size_hint = static_cast<size_t>(file_size.QuadPart);
 #else
     DirEntry de(path, *fd);
     if (!de) {
-      return tl::unexpected(strerror(errno));
+      const std::error_code error(de.error_number(), std::generic_category());
+      return tl::unexpected(IoError{error, error.message()});
     }
     size_hint = de.size();
 #endif
@@ -387,7 +394,8 @@ read_file(const fs::path& path, size_t size_hint)
   if (size_hint > std::numeric_limits<size_t>::max() / 4) {
     // Too large value on a 32-bit system won't work well, better bail.
     return tl::unexpected(
-      FMT("too large file: {} ({} bytes)", path, size_hint));
+      IoError{std::make_error_code(std::errc::file_too_large),
+              FMT("too large file: {} ({} bytes)", path, size_hint)});
   }
 
   int64_t ret = 0;
@@ -410,7 +418,8 @@ read_file(const fs::path& path, size_t size_hint)
   }
 
   if (ret == -1) {
-    return tl::unexpected(strerror(errno));
+    const std::error_code error(errno, std::generic_category());
+    return tl::unexpected(IoError{error, error.message()});
   }
 
   result.resize(pos);
@@ -432,10 +441,12 @@ read_file(const fs::path& path, size_t size_hint)
                                                 nullptr,
                                                 nullptr);
       if (utf8_size <= 0) {
+        const auto error = GetLastError();
         return tl::unexpected(
-          FMT("Failed to convert {} from UTF-16LE to UTF-8: {}",
-              path,
-              util::win32_error_message(GetLastError())));
+          IoError{std::error_code(error, std::system_category()),
+                  FMT("Failed to convert {} from UTF-16LE to UTF-8: {}",
+                      path,
+                      util::win32_error_message(error))});
       }
 
       std::string utf8(utf8_size, '\0');
@@ -456,13 +467,13 @@ read_file(const fs::path& path, size_t size_hint)
   return result;
 }
 
-template tl::expected<Bytes, std::string> read_file(const fs::path& path,
-                                                    size_t size_hint);
+template tl::expected<Bytes, IoError> read_file(const fs::path& path,
+                                                size_t size_hint);
 
-template tl::expected<std::string, std::string> read_file(const fs::path& path,
-                                                          size_t size_hint);
+template tl::expected<std::string, IoError> read_file(const fs::path& path,
+                                                      size_t size_hint);
 
-template tl::expected<std::vector<uint8_t>, std::string>
+template tl::expected<std::vector<uint8_t>, IoError>
 read_file(const fs::path& path, size_t size_hint);
 
 template<typename T>

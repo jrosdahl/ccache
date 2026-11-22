@@ -1190,7 +1190,8 @@ Config::set_value_in_file(const std::string& path,
 
   auto config_content = util::read_file<std::string>(path);
   if (!config_content) {
-    throw core::Error(FMT("failed to read {}: {}", path, strerror(errno)));
+    throw core::Error(
+      FMT("failed to read {}: {}", path, config_content.error().message));
   }
 
   std::string result;

@@ -60,7 +60,8 @@ FileRecompressor::recompress(const DirEntry& dir_entry,
 
   if (header.compression_level != wanted_level) {
     const auto cache_file_data = util::value_or_throw<core::Error>(
-      util::read_file<util::Bytes>(dir_entry.path()),
+      util::read_file<util::Bytes>(dir_entry.path())
+        .transform_error([](auto&& error) { return std::move(error.message); }),
       FMT("Failed to read {}: ", dir_entry.path()));
     core::CacheEntry cache_entry(cache_file_data);
     cache_entry.verify_checksum();

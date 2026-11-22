@@ -524,7 +524,7 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
 
       return_value = std::move(*value);
     } else {
-      LOG("Failed to read {}: {}", cache_file.path, value.error());
+      LOG("Failed to read {}: {}", cache_file.path, value.error().message);
     }
   } else {
     LOG("No {} in local storage", util::format_base16(key));

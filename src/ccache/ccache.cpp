@@ -776,7 +776,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const fs::path& path)
 {
   auto data = util::read_file<util::Bytes>(path);
   if (!data) {
-    LOG("Failed to read {}: {}", path, data.error());
+    LOG("Failed to read {}: {}", path, data.error().message);
     return tl::unexpected(Statistic::internal_error);
   }
   return process_preprocessed_data(ctx, hash, std::move(*data));
@@ -796,7 +796,7 @@ result_key_from_depfile(Context& ctx, Hash& hash)
   if (!file_content) {
     LOG("Failed to read dependency file {}: {}",
         ctx.args_info.output_dep,
-        file_content.error());
+        file_content.error().message);
     return tl::unexpected(Statistic::bad_input_file);
   }
 
@@ -945,7 +945,7 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
     if (!stdout_data_result) {
       LOG("Failed to read {} (cleanup in progress?): {}",
           tmp_stdout.path,
-          stdout_data_result.error());
+          stdout_data_result.error().message);
       return tl::unexpected(Statistic::missing_cache_file);
     }
     stdout_data = *stdout_data_result;
@@ -955,7 +955,7 @@ do_execute(Context& ctx, util::Args& args, const bool capture_stdout = true)
   if (!stderr_data_result) {
     LOG("Failed to read {} (cleanup in progress?): {}",
         tmp_stderr.path,
-        stderr_data_result.error());
+        stderr_data_result.error().message);
     return tl::unexpected(Statistic::missing_cache_file);
   }
 
