@@ -13,6 +13,7 @@ base_tests() {
     expect_stat local_storage_miss 1
     expect_stat local_storage_read_hit 0
     expect_stat local_storage_read_miss 1
+    expect_stat local_storage_error 0
     expect_stat local_storage_write 1
     expect_stat remote_storage_hit 0
     expect_stat remote_storage_miss 0
@@ -39,6 +40,24 @@ base_tests() {
     expect_stat remote_storage_write 0
     expect_stat files_in_cache 1
     expect_equal_object_files reference_test1.o test1.o
+
+    # -------------------------------------------------------------------------
+    TEST "Local cache entry read and write errors"
+
+    $CCACHE_COMPILE -c test1.c
+    result_file=$(find_result_files "$CCACHE_DIR")
+    expect_exists "$result_file"
+    rm -f "$result_file" test1.o
+    mkdir "$result_file"
+
+    CCACHE_READONLY=1 $CCACHE_COMPILE -c test1.c
+    expect_exists test1.o
+    expect_stat local_storage_error 1
+
+    rm -f test1.o
+    CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
+    expect_exists test1.o
+    expect_stat local_storage_error 2
 
     # -------------------------------------------------------------------------
     TEST "ccache ccache gcc"

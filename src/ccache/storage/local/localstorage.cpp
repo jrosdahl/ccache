@@ -525,7 +525,12 @@ LocalStorage::get(const Hash::Digest& key, const core::CacheEntryType type)
       return_value = std::move(*value);
     } else {
       LOG("Failed to read {}: {}", cache_file.path, value.error().message);
+      if (value.error().code != std::errc::no_such_file_or_directory) {
+        increment_statistic(Statistic::local_storage_error);
+      }
     }
+  } else if (cache_file.lookup_failed) {
+    increment_statistic(Statistic::local_storage_error);
   } else {
     LOG("No {} in local storage", util::format_base16(key));
   }
@@ -559,11 +564,13 @@ LocalStorage::put(const Hash::Digest& key,
     result_file.flush();
     if (!l2_content_lock.acquire()) {
       LOG("Not storing {} due to lock failure", cache_file.path);
+      increment_statistic(Statistic::local_storage_error);
       return;
     }
     result_file.commit();
   } catch (core::Error& e) {
     LOG("Failed to write to {}: {}", cache_file.path, e.what());
+    increment_statistic(Statistic::local_storage_error);
     return;
   }
 
@@ -1091,18 +1098,26 @@ LocalStorage::look_up_cache_file(const Hash::Digest& key) const
 {
   const auto key_string = util::format_base16(key);
 
+  bool lookup_failed = false;
   for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
        ++level) {
     const auto path = get_path_in_cache(level, key_string);
     DirEntry dir_entry(path);
     if (dir_entry.is_regular_file()) {
-      return {path, dir_entry, level};
+      return {path, dir_entry, level, false};
+    }
+    const int error = dir_entry.error_number();
+    if (error != ENOENT) {
+      lookup_failed = true;
+      LOG("Failed to look up {}: {}",
+          path,
+          error == 0 ? "Not a regular file" : strerror(error));
     }
   }
 
   const auto shallowest_path =
     get_path_in_cache(k_min_cache_levels, key_string);
-  return {shallowest_path, DirEntry(), k_min_cache_levels};
+  return {shallowest_path, DirEntry(), k_min_cache_levels, lookup_failed};
 }
 
 StatsFile

@@ -22,6 +22,7 @@
 #include <ccache/context.hpp>
 #include <ccache/core/common.hpp>
 #include <ccache/core/exceptions.hpp>
+#include <ccache/core/statistic.hpp>
 #include <ccache/depfile.hpp>
 #include <ccache/util/direntry.hpp>
 #include <ccache/util/expected.hpp>
@@ -50,7 +51,7 @@ namespace core {
 
 using result::FileType;
 
-ResultRetriever::ResultRetriever(const Context& ctx,
+ResultRetriever::ResultRetriever(Context& ctx,
                                  std::optional<Hash::Digest> result_key)
   : m_ctx(ctx),
     m_result_key(result_key)
@@ -111,8 +112,13 @@ ResultRetriever::on_raw_file(uint8_t file_number,
     m_ctx.storage.local.get_raw_file_path(*m_result_key, file_number);
   DirEntry de(raw_file_path, DirEntry::LogOnError::yes);
   if (!de) {
+    m_ctx.storage.local.increment_statistic(Statistic::local_storage_error);
     throw Error(
       FMT("Failed to stat {}: {}", raw_file_path, strerror(de.error_number())));
+  }
+  if (!de.is_regular_file()) {
+    m_ctx.storage.local.increment_statistic(Statistic::local_storage_error);
+    throw Error(FMT("Not a regular file: {}", raw_file_path));
   }
   if (de.size() != file_size) {
     throw core::Error(

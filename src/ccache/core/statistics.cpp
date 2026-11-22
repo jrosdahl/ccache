@@ -154,6 +154,9 @@ const StatisticsField k_statistics_fields[] = {
   // Unexpected failure, e.g. due to problems reading/writing the cache.
   FIELD(internal_error, "Internal error", FLAG_ERROR),
 
+  // A local cache entry could not be read or written.
+  FIELD(local_storage_error, nullptr),
+
   // A cacheable call resulted in a hit when attempting to look up a result from
   // local storage.
   FIELD(local_storage_hit, nullptr),
@@ -465,6 +468,7 @@ Statistics::format_human_readable(const Config& config,
   const uint64_t local_reads =
     S(local_storage_read_hit) + S(local_storage_read_miss);
   const uint64_t local_writes = S(local_storage_write);
+  const uint64_t local_errors = S(local_storage_error);
   const uint64_t cleanups = S(cleanups_performed);
   const uint64_t remote_hits = S(remote_storage_hit);
   const uint64_t remote_misses = S(remote_storage_miss);
@@ -474,7 +478,8 @@ Statistics::format_human_readable(const Config& config,
   const uint64_t remote_errors = S(remote_storage_error);
   const uint64_t remote_timeouts = S(remote_storage_timeout);
 
-  if (!from_log || verbosity > 0 || (local_hits + local_misses) > 0) {
+  if (!from_log || verbosity > 0
+      || local_hits + local_misses + local_errors > 0) {
     table.add_heading("Local storage:");
   }
   if (!from_log) {
@@ -514,6 +519,9 @@ Statistics::format_human_readable(const Config& config,
   if (verbosity > 0) {
     table.add_row({"  Reads:", local_reads});
     table.add_row({"  Writes:", local_writes});
+  }
+  if (local_errors > 0) {
+    table.add_row({"  Errors:", local_errors});
   }
 
   if (verbosity > 1

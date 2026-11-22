@@ -151,6 +151,7 @@ private:
     std::filesystem::path path;
     util::DirEntry dir_entry;
     uint8_t level;
+    bool lookup_failed;
   };
 
   LookUpCacheFileResult look_up_cache_file(const Hash::Digest& key) const;

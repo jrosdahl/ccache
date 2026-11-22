@@ -151,6 +151,22 @@ if $RUN_WIN_XFAIL; then
     expect_content test1.d "test1.o: test1.c"
 fi
     # -------------------------------------------------------------------------
+    TEST "Missing cached raw file counts as a local storage error"
+
+    generate_code 1 test1.c
+
+    CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.c
+    expect_stat local_storage_error 0
+
+    raw_file=$(find "$CCACHE_DIR" -name '*_[0-9a-f][0-9a-f]')
+    expect_exists "$raw_file"
+    rm -f "$raw_file" test1.o
+
+    CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.c
+    expect_exists test1.o
+    expect_stat local_storage_error 1
+
+    # -------------------------------------------------------------------------
     TEST "Failure to store raw file doesn't fail the compilation"
 
     generate_code 1 test1.c
@@ -168,6 +184,7 @@ fi
 
     CCACHE_HARDLINK=1 CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
     expect_stat recache 1
+    expect_stat local_storage_error 1
     expect_exists test1.o
     if [ -n "$(find "$CCACHE_DIR" -name "${raw_file##*/}.tmp.*")" ]; then
         test_failed "Temporary raw file left behind after failed cache write"

@@ -1178,7 +1178,11 @@ write_result(Context& ctx,
         // Like other failures to write to the cache, this must not fail the
         // compilation, so just don't store the result.
         LOG("Not storing the result: {}", e.what());
+        ctx.storage.local.increment_statistic(Statistic::local_storage_error);
         return true;
+      } catch (const core::Fatal&) {
+        ctx.storage.local.increment_statistic(Statistic::local_storage_error);
+        throw;
       }
     }
   }
