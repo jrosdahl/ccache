@@ -101,6 +101,7 @@ AtomicFile::commit()
   }
   const auto result = fs::rename(m_tmp_path, m_path);
   if (!result) {
+    std::ignore = util::remove(m_tmp_path);
     throw core::Error(FMT("failed to rename {} to {}: {}",
                           m_tmp_path,
                           m_path,

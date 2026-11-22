@@ -222,10 +222,17 @@ tl::expected<void, std::string>
 copy_file(const fs::path& src, const fs::path& dest, ViaTmpFile via_tmp_file)
 {
   fs::path tmp_file;
-  TRY(copy_file_impl(src, dest, via_tmp_file, tmp_file));
+  const auto copy_result = copy_file_impl(src, dest, via_tmp_file, tmp_file);
+  if (!copy_result) {
+    if (!tmp_file.empty()) {
+      std::ignore = util::remove(tmp_file);
+    }
+    return copy_result;
+  }
   if (via_tmp_file == ViaTmpFile::yes) {
     const auto result = fs::rename(tmp_file, dest);
     if (!result) {
+      std::ignore = util::remove(tmp_file);
       return tl::unexpected(FMT("Failed to rename {} to {}: {}",
                                 tmp_file,
                                 dest,

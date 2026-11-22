@@ -259,7 +259,12 @@ clone_file(const fs::path& src, const fs::path& dest, bool via_tmp_file)
   }
 
   if (ioctl(*dest_fd, FICLONE, *src_fd) != 0) {
-    throw core::Error(strerror(errno));
+    const int error = errno;
+    if (via_tmp_file) {
+      dest_fd.close();
+      std::ignore = util::remove(tmp_file);
+    }
+    throw core::Error(strerror(error));
   }
 
   dest_fd.close();
@@ -268,6 +273,7 @@ clone_file(const fs::path& src, const fs::path& dest, bool via_tmp_file)
   if (via_tmp_file) {
     const auto result = fs::rename(tmp_file, dest);
     if (!result) {
+      std::ignore = util::remove(tmp_file);
       throw core::Error(FMT("failed to rename {} to {}: {}",
                             tmp_file,
                             dest,

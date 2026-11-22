@@ -169,4 +169,7 @@ fi
     CCACHE_HARDLINK=1 CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
     expect_stat recache 1
     expect_exists test1.o
+    if [ -n "$(find "$CCACHE_DIR" -name "${raw_file##*/}.tmp.*")" ]; then
+        test_failed "Temporary raw file left behind after failed cache write"
+    fi
 }
