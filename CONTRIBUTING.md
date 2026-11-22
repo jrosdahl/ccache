@@ -69,10 +69,10 @@ It is preferable, but not mandatory, to format commit messages in the spirit of
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). The
 commit message subject should look like this:
 
-        <type>: <description>
-        <type>(<scope>): <description>
+        <type>: <summary>
+        <type>(<scope>): <summary>
 
-`<description>` is a succinct description of the change:
+`<summary>` is a succinct description of the change:
 
 * Use the imperative, present tense: "Change", not "Changed" nor "Changes".
 * Capitalize the first letter.
